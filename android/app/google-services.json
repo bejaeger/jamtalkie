@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "88097674888",
+    "project_id": "jamtalkie---dev",
+    "storage_bucket": "jamtalkie---dev.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:88097674888:android:04d29088175f259349b13d",
+        "android_client_info": {
+          "package_name": "com.athenia.jamtalkie"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "88097674888-bmneon087tk7ld2c4hbki7fipou630uo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0nLfQ3Viyve1PapUBWGiuODHxogOum3o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "88097674888-bmneon087tk7ld2c4hbki7fipou630uo.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "88097674888-383m2r3nj8kht68im2qgujgkm53hlmsq.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.jamtalkie.RunnerTests"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
