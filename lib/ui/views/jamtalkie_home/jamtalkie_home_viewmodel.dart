@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:audio_session/audio_session.dart';
 import 'package:jamtalkie/app/app.locator.dart';
+import 'package:jamtalkie/constants/constants.dart';
 import 'package:jamtalkie/services/firebase_service.dart';
+import 'package:jamtalkie/services/porcupine_service.dart';
 import 'package:jamtalkie/ui/common/app_strings.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:stacked/stacked.dart';
@@ -18,12 +20,18 @@ class JamtalkieHomeViewModel extends BaseViewModel {
   final recorder = Record();
   final AudioPlayer _audioPlayer =
       AudioPlayer(handleAudioSessionActivation: false);
+
+  final PorcupineService _porcupineService = locator<PorcupineService>();
   // final audioplayers.AudioPlayer __audioPlayer = audioplayers.AudioPlayer();
   final log = getLogger("JamtalkieHomeViewModel");
   late AudioSession session;
+  late AudioSession recordingSession;
 
   Stream<PlayerState> get playerState => _audioPlayer.playerStateStream;
   int get userId => _firebaseService.userIdPublic;
+
+  bool get isListeningToKeyword => _porcupineService.isProcessing;
+  bool get isUserRecordingAudioPico => _porcupineService.isUserRecordingAudio;
 
   List<String> audioList = [];
   bool debugMode = false;
@@ -35,8 +43,14 @@ class JamtalkieHomeViewModel extends BaseViewModel {
   bool isRecording = false;
   bool receivingAudio = false;
   bool playingAudio = false;
+  bool playingSoundEffect = false;
 
   Future<void> init() async {
+    await _porcupineService.init(
+      notifyViewModel: notifyListeners,
+      startRecordingCallback: startRecordingAudio,
+      stopRecordingCallback: stopRecordingAudio,
+    );
     session = await AudioSession.instance;
 
     playerState.listen((event) async {
@@ -44,14 +58,15 @@ class JamtalkieHomeViewModel extends BaseViewModel {
               event.processingState == ProcessingState.buffering ||
               event.playing) &&
           event.processingState != ProcessingState.completed) {
-        playingAudio = true;
-        notifyListeners();
+        if (!playingSoundEffect) {
+          playingAudio = true;
+          notifyListeners();
+        }
       }
       if (event.processingState == ProcessingState.completed) {
         log.i("Completed playing audio");
-        bool ok = await session.setActive(false);
-        if (!ok) {
-          log.wtf("Could not deactivate audio session");
+        if (!isRecording) {
+          await session.setActive(false);
         }
         isPlayingAudioWithIndex = -1;
         playingAudio = false;
@@ -83,13 +98,32 @@ class JamtalkieHomeViewModel extends BaseViewModel {
       androidWillPauseWhenDucked: true,
     ));
 
+    recordingSession = await AudioSession.instance;
+    await recordingSession.configure(const AudioSessionConfiguration(
+      avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
+      avAudioSessionCategoryOptions:
+          AVAudioSessionCategoryOptions.allowBluetooth,
+      avAudioSessionMode: AVAudioSessionMode.defaultMode,
+      avAudioSessionRouteSharingPolicy:
+          AVAudioSessionRouteSharingPolicy.defaultPolicy,
+      avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
+      androidAudioAttributes: AndroidAudioAttributes(
+        contentType: AndroidAudioContentType.speech,
+        flags: AndroidAudioFlags.none,
+        usage: AndroidAudioUsage.media,
+      ),
+      androidAudioFocusGainType: AndroidAudioFocusGainType.gainTransientMayDuck,
+      androidWillPauseWhenDucked: true,
+    ));
+    // log.i(
+    //     "Audio input devices: ${await recordingSession.getDevices(includeOutputs: false)}");
+
     _firebaseService.listenToRoomMessages(
         roomId: "1234", playFileCallback: playAudioUrl);
   }
 
-  Future recordAudio() async {
-    String filename =
-        "Audio-${DateTime.now().microsecondsSinceEpoch}.$fileExtension";
+  Future startRecordingAudio() async {
+    String filename = "audio.$fileExtension";
     String directory = await ensureDirectory();
     String path = "$directory/$filename";
     try {
@@ -103,16 +137,20 @@ class JamtalkieHomeViewModel extends BaseViewModel {
           );
           return;
         }
-        await recorder.start(
-          path: path,
-          encoder: _audioEncoder,
-          // by default
-          bitRate: 128000, // by default
-          numChannels: 1,
-          samplingRate: 16000, // by default
-        );
-        isRecording = true;
-        notifyListeners();
+
+        playMicOnSound();
+        if (await recordingSession.setActive(true)) {
+          await recorder.start(
+            path: path,
+            encoder: _audioEncoder,
+            // by default
+            bitRate: 128000, // by default
+            numChannels: 1,
+            samplingRate: 16000, // by default
+          );
+          isRecording = true;
+          notifyListeners();
+        }
       } else {
         _snackbarService.showSnackbar(
           title: 'Permission Denied',
@@ -133,10 +171,14 @@ class JamtalkieHomeViewModel extends BaseViewModel {
     return directory.path;
   }
 
-  Future stopRecording() async {
+  Future stopRecordingAudio() async {
+    playMicOffSound();
     String? path = await recorder.stop();
+    await recordingSession.setActive(false);
     if (path != null) {
-      audioList.add(path);
+      if (!audioList.contains(path)) {
+        audioList.add(path);
+      }
       log.i("Recorded file saved to $path");
       try {
         _firebaseService.uploadFile(
@@ -164,8 +206,12 @@ class JamtalkieHomeViewModel extends BaseViewModel {
     setBusy(true);
     File file = File(audioList[index]);
     log.i("deleting $file");
-    await file.delete();
-    audioList.removeAt(index);
+    try {
+      await file.delete();
+      audioList.removeAt(index);
+    } catch (e) {
+      log.e("Cannot delte file due to error : $e");
+    }
     setBusy(false);
     return true;
   }
@@ -192,6 +238,28 @@ class JamtalkieHomeViewModel extends BaseViewModel {
     await play(path: file.path);
   }
 
+  Future playMicOnSound() async {
+    playingSoundEffect = true;
+    try {
+      await _audioPlayer.setAsset(kaSoundEffectBeepPath);
+      await _audioPlayer.play();
+    } catch (e) {
+      log.e("Error playing on sound effect: $e");
+    }
+    playingSoundEffect = false;
+  }
+
+  Future playMicOffSound() async {
+    playingSoundEffect = true;
+    try {
+      await _audioPlayer.setAsset(kaSoundEffectStopPath);
+      await _audioPlayer.play();
+    } catch (e) {
+      log.e("Error playing off sound effect: $e");
+    }
+    playingSoundEffect = false;
+  }
+
   Future play({required String path}) async {
     try {
       log.i("Play audio $path");
@@ -210,6 +278,14 @@ class JamtalkieHomeViewModel extends BaseViewModel {
     }
   }
 
+  Future togglePorcupine(bool value) async {
+    if (value) {
+      await _porcupineService.startProcessing();
+    } else {
+      await _porcupineService.stopProcessing();
+    }
+  }
+
   Future showNotImplementedDialog() async {
     _snackbarService.showSnackbar(
       title: 'Not Implemented',
@@ -221,7 +297,10 @@ class JamtalkieHomeViewModel extends BaseViewModel {
   void showTutorialDialog() {
     _dialogService.showDialog(
         title: ksJamTalkieHomeTutorialDialogTitle,
-        description: ksJamTalkieHomeTutorialDialogDescription,
+        description: ksJamTalkieHomeTutorialDialogDescription +
+            (Platform.isAndroid
+                ? " You can also use 'Talkie on' and 'Talkie over' as voice commands once enabled."
+                : ""),
         barrierDismissible: true);
   }
 
@@ -230,8 +309,12 @@ class JamtalkieHomeViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void switchDebugMode(bool value) {
-    debugMode = value;
+  void toggleDebugMode() {
+    if (debugMode) {
+      debugMode = false;
+    } else {
+      debugMode = true;
+    }
     notifyListeners();
   }
 

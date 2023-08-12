@@ -15,7 +15,7 @@ dependencies:
   audio_session: ^0.1.16
   record: ^4.4.4
   just_audio:
-  # audioplayers:
+  porcupine_flutter: ^2.2.1
   path_provider: 
   firebase_core: ^2.15.0
   firebase_storage: ^11.2.5
@@ -32,3 +32,12 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    - assets/Talkie-off_en_android_v2_2_0/Talkie-off_en_android_v2_2_0.ppn
+    - assets/Talkie-on_en_android_v2_2_0/Talkie-on_en_android_v2_2_0.ppn
+    - assets/Talkie-over_en_android_v2_2_0/Talkie-over_en_android_v2_2_0.ppn
+    - assets/porcupine_params.pv
+    - assets/sound_effects/beep-6-96243.mp3
+    - assets/sound_effects/message-13716.mp3
+    - assets/sound_effects/start-13691.mp3
+    - assets/sound_effects/stop-13692.mp3

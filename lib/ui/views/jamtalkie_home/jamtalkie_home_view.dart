@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:jamtalkie/ui/common/ui_helpers.dart';
 import 'package:jamtalkie/ui/widgets/custom_safe_area.dart';
@@ -31,11 +33,14 @@ class JamtalkieHomeView extends StackedView<JamtalkieHomeViewModel> {
             children: [
               verticalSpaceMedium,
               verticalSpaceSmall,
-              const Center(
-                child: Text(
-                  'WELCOME to JamTalkie!',
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
-                  // textAlign: TextAlign.center,
+              GestureDetector(
+                onDoubleTap: viewModel.toggleDebugMode,
+                child: const Center(
+                  child: Text(
+                    'WELCOME to JamTalkie!',
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
+                    // textAlign: TextAlign.center,
+                  ),
                 ),
               ),
               verticalSpaceLarge,
@@ -45,7 +50,8 @@ class JamtalkieHomeView extends StackedView<JamtalkieHomeViewModel> {
                   children: [
                     Icon(Icons.info_outline_rounded),
                     horizontalSpaceSmall,
-                    Text("How it works?"),
+                    Text("How it works?",
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -72,16 +78,17 @@ class JamtalkieHomeView extends StackedView<JamtalkieHomeViewModel> {
                   ),
                 ],
               ),
-              Row(
-                children: [
-                  const Icon(Icons.list_alt_rounded),
-                  horizontalSpaceSmall,
-                  const Text("Show audio list"),
-                  Switch(
-                      value: viewModel.debugMode,
-                      onChanged: (value) => viewModel.switchDebugMode(value)),
-                ],
-              ),
+              if (Platform.isAndroid)
+                Row(
+                  children: [
+                    const Icon(Icons.mic_rounded),
+                    horizontalSpaceSmall,
+                    const Text("Use voice commands"),
+                    Switch(
+                        value: viewModel.isListeningToKeyword,
+                        onChanged: (value) => viewModel.togglePorcupine(value)),
+                  ],
+                ),
               const Spacer(flex: 1),
               SizedBox(
                 height: 25,
@@ -92,8 +99,9 @@ class JamtalkieHomeView extends StackedView<JamtalkieHomeViewModel> {
                         : const Text(""),
               ),
               MicrophoneButton(
-                onRecordStart: viewModel.recordAudio,
-                onRecordStop: viewModel.stopRecording,
+                onRecordStart: viewModel.startRecordingAudio,
+                onRecordStop: viewModel.stopRecordingAudio,
+                isRecording: viewModel.isUserRecordingAudioPico,
               ),
               verticalSpaceSmall,
               const Text("Hold to record audio",

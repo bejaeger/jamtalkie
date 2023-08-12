@@ -7,6 +7,7 @@ import 'package:stacked_services/stacked_services.dart';
 import 'package:jamtalkie/ui/views/jamtalkie_home/jamtalkie_home_view.dart';
 import 'package:jamtalkie/services/audio_service_service.dart';
 import 'package:jamtalkie/services/firebase_service.dart';
+import 'package:jamtalkie/services/porcupine_service.dart';
 // @stacked-import
 
 @StackedApp(
@@ -24,6 +25,7 @@ import 'package:jamtalkie/services/firebase_service.dart';
     LazySingleton(classType: NavigationService),
     LazySingleton(classType: AudioServiceService),
     LazySingleton(classType: FirebaseService),
+    LazySingleton(classType: PorcupineService),
 // @stacked-service
   ],
   bottomsheets: [

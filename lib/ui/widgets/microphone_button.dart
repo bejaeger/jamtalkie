@@ -4,11 +4,13 @@ import 'package:jamtalkie/ui/common/ui_helpers.dart';
 class MicrophoneButton extends StatefulWidget {
   final Function onRecordStart;
   final Function onRecordStop;
+  final bool isRecording;
 
   const MicrophoneButton({
     Key? key,
     required this.onRecordStart,
     required this.onRecordStop,
+    required this.isRecording,
   }) : super(key: key);
 
   @override
@@ -44,7 +46,7 @@ class _MicrophoneButtonState extends State<MicrophoneButton> {
               color: Colors.blue[400],
             ),
           ),
-          if (_isRecording)
+          if (_isRecording || widget.isRecording)
             Container(
               width: screenWidth(context) * 0.55 - 20,
               height: screenWidth(context) * 0.55 - 20,

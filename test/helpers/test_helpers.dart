@@ -4,6 +4,7 @@ import 'package:jamtalkie/app/app.locator.dart';
 import 'package:stacked_services/stacked_services.dart';
 import 'package:jamtalkie/services/audio_service_service.dart';
 import 'package:jamtalkie/services/firebase_service.dart';
+import 'package:jamtalkie/services/porcupine_service.dart';
 // @stacked-import
 
 import 'test_helpers.mocks.dart';
@@ -14,6 +15,7 @@ import 'test_helpers.mocks.dart';
   MockSpec<DialogService>(onMissingStub: OnMissingStub.returnDefault),
   MockSpec<AudioServiceService>(onMissingStub: OnMissingStub.returnDefault),
   MockSpec<FirebaseService>(onMissingStub: OnMissingStub.returnDefault),
+  MockSpec<PorcupineService>(onMissingStub: OnMissingStub.returnDefault),
 // @stacked-mock-spec
 ])
 void registerServices() {
@@ -22,6 +24,7 @@ void registerServices() {
   getAndRegisterDialogService();
   getAndRegisterAudioServiceService();
   getAndRegisterFirebaseService();
+  getAndRegisterPorcupineService();
 // @stacked-mock-register
 }
 
@@ -86,6 +89,13 @@ MockFirebaseService getAndRegisterFirebaseService() {
   _removeRegistrationIfExists<FirebaseService>();
   final service = MockFirebaseService();
   locator.registerSingleton<FirebaseService>(service);
+  return service;
+}
+
+MockPorcupineService getAndRegisterPorcupineService() {
+  _removeRegistrationIfExists<PorcupineService>();
+  final service = MockPorcupineService();
+  locator.registerSingleton<PorcupineService>(service);
   return service;
 }
 // @stacked-mock-create
